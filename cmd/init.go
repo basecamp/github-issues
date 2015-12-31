@@ -10,12 +10,10 @@ import (
 var issuesCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize github-issues CLI tool and generate config file",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Long: `github-issues requires authentication to Github for private repositories.
+Go to your Github Profile and get a Personal Token to use. Then, run:
 
-Cobra is a Cli library for Go that empowers applications. This
-application is a tool to generate the needed files to quickly create a Cobra
-application.`,
+github-issues init -t <your token>`,
 	Run: func(cmd *cobra.Command, args []string) {
 		token, _ := cmd.Flags().GetString("token")
 		config.GenerateConfig(token)
