@@ -1,11 +1,12 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"os/user"
 
 	"github.com/spf13/viper"
+
+	"github.com/highrisehq/github-issues/logger"
 )
 
 const (
@@ -38,15 +39,15 @@ func ConfigInit() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		logger.Debug("Using config file: " + viper.ConfigFileUsed())
 	}
 }
 
 func GenerateConfig() {
 	if _, err := os.Stat(fullFileLocation()); err == nil {
-		fmt.Println("config file already exists")
+		logger.Debug("Config file already exists")
 	} else {
-		fmt.Println("Generating new config file at " + fullFileLocation() + "...")
+		logger.Debug("Generating new config file at " + fullFileLocation() + "...")
 	}
 }
 

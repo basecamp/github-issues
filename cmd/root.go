@@ -1,17 +1,18 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"sync"
+	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
-
 	"github.com/highrisehq/github-issues/config"
+	"github.com/highrisehq/github-issues/issues"
+	"github.com/highrisehq/github-issues/logger"
+	"github.com/highrisehq/github-issues/projects"
 )
+
+var debugFlag bool
 
 // This represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -24,62 +25,56 @@ Cobra is a Cli library for Go that empowers applications. This
 application is a tool to generate the needed files to quickly create a Cobra
 application.`,
 	// Uncomment the following line if your bare application has an action associated with it
-	Run: func(cmd *cobra.Command, args []string) {
-		client := client()
-
-		labels := []string{"beta"}
-		options := github.IssueListByRepoOptions{State: "open", Labels: labels}
-		issues, _, err := client.Issues.ListByRepo("highrisehq", "server", &options)
-		if err != nil {
-			fmt.Println(err)
-		} else if len(issues) == 0 {
-			fmt.Println("no pulls")
-		} else {
-			var wg sync.WaitGroup
-			for _, issue := range issues {
-				if issue.PullRequestLinks != nil {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						fetchByIssueNumber(*client, *issue.Number)
-					}()
-					wg.Wait()
-				}
-			}
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if debugFlag {
+			logger.CurrentLevel = logger.DebugLevel
 		}
+		config.ConfigInit()
 	},
-}
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(ownerArg) == 0 {
+			ownerArg = projects.Current().GithubOwner()
+		}
+		if len(repoArg) == 0 {
+			repoArg = projects.Current().GithubRepo()
+		}
+		if len(repoArg) == 0 || len(ownerArg) == 0 {
+			logger.Info("Couldn't find Owner or Repo to query")
+			return
+		}
 
-func fetchByIssueNumber(client github.Client, number int) {
-	pull, _, _ := client.PullRequests.Get("highrisehq", "server", number)
-	fmt.Printf("%s\n", *pull.Head.Ref)
-}
-
-func client() *github.Client {
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: config.GetToken()},
-	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	client := github.NewClient(tc)
-	return client
+		labels := strings.Split(strings.Trim(labelArg, " "), ",")
+		issueQuery := issues.Query{
+			Labels: labels,
+			State:  stateArg,
+			Owner:  ownerArg,
+			Repo:   repoArg,
+		}
+		issueQuery.Execute()
+	},
 }
 
 //Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Error(err.Error())
 		os.Exit(-1)
 	}
 }
 
-func init() {
-	cobra.OnInitialize(config.ConfigInit)
-	// Here you will define your flags and configuration settings
-	// Cobra supports Persistent Flags which if defined here will be global for your application
+var labelArg string
+var stateArg string
+var ownerArg string
+var repoArg string
 
+func init() {
 	RootCmd.PersistentFlags().StringVar(&config.ConfigFile, "config", "", "config file (default is $HOME/.github-issues.yaml)")
 
-	// Cobra also supports local flags which will only run when this action is called directly
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.Flags().StringVarP(&labelArg, "labels", "l", "", "comma delimited labels to search by")
+	RootCmd.Flags().StringVarP(&stateArg, "state", "s", "open", "Issue State: [open, closed, all]")
+	RootCmd.Flags().StringVarP(&ownerArg, "owner", "o", "", "Repo Owner string (your username or organization)")
+	RootCmd.Flags().StringVarP(&repoArg, "repo", "r", "", "Repository")
+
+	RootCmd.PersistentFlags().BoolVarP(&debugFlag, "debug", "d", false, "Debug messages")
 }
