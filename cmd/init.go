@@ -17,19 +17,12 @@ Cobra is a Cli library for Go that empowers applications. This
 application is a tool to generate the needed files to quickly create a Cobra
 application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		config.GenerateConfig()
+		token, _ := cmd.Flags().GetString("token")
+		config.GenerateConfig(token)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(issuesCmd)
-
-	// Here you will define your flags and configuration settings
-
-	// Cobra supports Persistent Flags which will work for this command and all subcommands
-	// issuesCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command is called directly
-	// issuesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle" )
-
+	issuesCmd.Flags().StringP("token", "t", "", "Github auth token to initialize config with")
 }

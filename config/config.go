@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
 	"os/user"
 
@@ -43,11 +44,16 @@ func ConfigInit() {
 	}
 }
 
-func GenerateConfig() {
+func GenerateConfig(token string) {
 	if _, err := os.Stat(fullFileLocation()); err == nil {
 		logger.Debug("Config file already exists")
 	} else {
 		logger.Debug("Generating new config file at " + fullFileLocation() + "...")
+		content := []byte("[authentication]\ntoken = \"" + token + "\"\n")
+		err := ioutil.WriteFile(fullFileLocation(), content, 0644)
+		if err != nil {
+			logger.Info("There was a problem writing your config file")
+		}
 	}
 }
 
