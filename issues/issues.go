@@ -34,7 +34,7 @@ func (query *Query) Execute() {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					fetchByIssueNumber(*client, *issue.Number)
+					fmt.Printf("%s\n", fetchByIssueNumber(*client, *issue.Number))
 				}()
 				wg.Wait()
 			}
@@ -42,9 +42,9 @@ func (query *Query) Execute() {
 	}
 }
 
-func fetchByIssueNumber(client github.Client, number int) {
+func fetchByIssueNumber(client github.Client, number int) string {
 	pull, _, _ := client.PullRequests.Get("highrisehq", "server", number)
-	fmt.Printf("%s\n", *pull.Head.Ref)
+	return *pull.Head.Ref
 }
 
 func client() *github.Client {
